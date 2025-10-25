@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
+/>
 <title>ShopTracker – Simple</title>
 
 <style>
@@ -12,6 +15,7 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{height:100%}
+  html{ -webkit-text-size-adjust:100%; touch-action:manipulation; }
   body{
     margin:0; color:var(--text);
     background:
@@ -25,7 +29,11 @@
   .hero h1{margin:0; font-size:1.25rem; font-weight:800}
   .hero p{margin:.25rem 0 0; color:var(--muted); font-size:.9rem}
   .nav{display:flex; gap:8px}
-  .btn{appearance:none; border:none; border-radius:12px; padding:.6rem .9rem; font-weight:700; background:var(--primary); color:#fff; box-shadow:var(--shadow); cursor:pointer}
+  .btn{
+    appearance:none; border:none; border-radius:12px; padding:.6rem .9rem;
+    font-weight:700; background:var(--primary); color:#fff; box-shadow:var(--shadow); cursor:pointer;
+    touch-action:manipulation; font-size:16px; /* avoid iOS focus zoom */
+  }
   .btn:active{transform:scale(.98)}
   .btn-ghost{background:rgba(255,255,255,.08); color:#cfe4ff; box-shadow:none}
 
@@ -33,9 +41,17 @@
 
   /* HOME cards (accordion) */
   .list{display:flex; flex-direction:column; gap:10px}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow)}
-  .card-header{display:flex; align-items:center; gap:12px; cursor:pointer}
-  .badge{width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:rgba(10,132,255,.15); border:1px solid rgba(10,132,255,.35); font-weight:900}
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow)
+  }
+  .card-header{display:flex; align-items:center; gap:12px; cursor:pointer; touch-action:manipulation}
+  .badge{
+    width:44px; height:44px; border-radius:10px; display:grid; place-items:center;
+    background:linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.16);
+  }
+  .badge img{width:22px; height:22px; opacity:.95; display:block; filter: invert(90%) sepia(6%) saturate(500%) hue-rotate(185deg) brightness(105%) contrast(95%); }
   .meta{flex:1}
   .meta h2{margin:0; font-size:1rem; font-weight:800}
   .meta p{margin:.15rem 0 0; color:var(--muted); font-size:.86rem}
@@ -51,7 +67,7 @@
   .items{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px}
   .item{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:10px; padding:8px; border-radius:10px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06)}
   .item.done label{text-decoration:line-through; color:#8fa5c7}
-  .remove{border:none; border-radius:10px; padding:.45rem .6rem; font-weight:800; background:var(--danger); color:#fff; cursor:pointer}
+  .remove{border:none; border-radius:10px; padding:.45rem .6rem; font-weight:800; background:var(--danger); color:#fff; cursor:pointer; touch-action:manipulation}
 
   /* small pill counter */
   .pill{display:inline-block; min-width:22px; padding:.15rem .45rem; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); font-size:.78rem; text-align:center}
@@ -61,7 +77,11 @@
   .section h2{margin:0 0 10px; font-size:1.05rem}
   .row{display:grid; grid-template-columns:1fr; gap:10px}
   .label{font-size:.9rem; color:#dbe8ff; font-weight:700}
-  .input, .select{appearance:none; width:100%; padding:.7rem .85rem; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--text)}
+  .input, .select{
+    appearance:none; width:100%; padding:.7rem .85rem; border-radius:12px;
+    border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--text);
+    font-size:16px; /* prevent iOS zoom on focus */
+  }
   .inline{display:flex; gap:8px; flex-wrap:wrap}
   .small{color:var(--muted); font-size:.85rem}
   .danger{color:#ffb8b6; text-decoration:underline; cursor:pointer}
@@ -72,7 +92,7 @@
   summary::-webkit-details-marker{display:none}
 
   /* Collapsible shops in Edit */
-  .shop-head{display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer}
+  .shop-head{display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; touch-action:manipulation}
   .shop-body{display:none; margin-top:8px}
   .shop.open .shop-body{display:block}
   .note{color:#9fb0c9; text-align:center; margin-top:6px; font-size:.9rem}
@@ -141,6 +161,15 @@
 <script>
 (function(){
   "use strict";
+
+  /* ---- Prevent iOS zoom on double-tap ---- */
+  let _lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    const now = Date.now();
+    if (now - _lastTouchEnd <= 300) e.preventDefault();
+    _lastTouchEnd = now;
+  }, { passive: false });
+
   // — Storage —
   function createSafeStorage(){
     const mem={};
@@ -148,7 +177,7 @@
     catch(e){ return { getItem:k=>mem[k]??null, setItem:(k,v)=>mem[k]=String(v), removeItem:k=>delete mem[k] }; }
   }
   const storage=createSafeStorage();
-  const KEY='shop_simple_v7'; // bump key so your old cached data doesn't conflict while testing
+  const KEY='shop_simple_icons_v1';
 
   // Catalog for initial seeding (Home demo data)
   const CATALOG = {
@@ -157,6 +186,7 @@
     Presents:  ['Birthday card','Gift wrap','Chocolate box','Flowers','Book','Toy','Board game','Photo frame']
   };
   function randFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function it(text){ return {id:uid(), text, done:false}; }
   function randomItems(cat, n=3){
     const pool = CATALOG[cat] || [];
     const picked = new Set();
@@ -174,7 +204,6 @@
   };
 
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
-  function it(text){ return {id:uid(), text, done:false}; }
   function load(){ try{ const raw=storage.getItem(KEY); return raw? JSON.parse(raw): DEFAULT; }catch{ return DEFAULT; } }
   function save(){ storage.setItem(KEY, JSON.stringify(state)); }
   let state=load();
@@ -188,8 +217,13 @@
 
   // Helpers
   function cssId(s){ return s.replace(/\s+/g,'-').toLowerCase(); }
-  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
-  function icon(cat){ return cat==='Groceries'?'🛒':cat==='Clothes'?'👕':cat==='Presents'?'🎁':'🗂️'; }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;","&gt;":">","\"":"&quot;","'":"&#39;"}[m])); }
+  function iconPath(cat){
+    if(cat==='Groceries') return 'assets/icons/grocery.svg';
+    if(cat==='Clothes')   return 'assets/icons/clothes.svg';
+    if(cat==='Presents')  return 'assets/icons/presents.svg';
+    return 'assets/icons/grocery.svg';
+  }
 
   function pendingCountForCategory(cat){
     let n=0;
@@ -217,7 +251,7 @@
       const cardId = cssId(cat);
       card.innerHTML = `
         <div class="card-header" data-cat="${cat}" role="button" aria-expanded="false" aria-controls="panel-${cardId}">
-          <div class="badge">${icon(cat)}</div>
+          <div class="badge"><img src="${iconPath(cat)}" alt="${cat} icon" loading="lazy"></div>
           <div class="meta">
             <h2>${cat}</h2>
             <p><span class="pill" id="pill-${cardId}">${pending}</span> to buy</p>
@@ -301,7 +335,7 @@
     </li>`;
   }
 
-  // ✅ Toggle strike-through, DO NOT re-render the panel
+  // Toggle strike-through without re-rendering whole panel
   function onToggleItem(e){
     const li = e.target.closest('.item'); if(!li) return;
     const shop = state.shops.find(s=> s.id===li.dataset.shop);
@@ -309,10 +343,10 @@
     if(!item) return;
 
     item.done = e.target.checked;
-    li.classList.toggle('done', item.done); // visual tachado
+    li.classList.toggle('done', item.done);
     save();
 
-    // update shop & category counters
+    // update pills
     const cat = categoryOfShopId(shop.id);
     const shopPill = document.getElementById('pill-shop-'+shop.id);
     if(shopPill) shopPill.textContent = pendingCountForShop(shop);
@@ -329,7 +363,7 @@
     li.remove();
     save();
 
-    // update counters after removal
+    // update pills
     const cat = categoryOfShopId(shop.id);
     const shopPill = document.getElementById('pill-shop-'+shop.id);
     if(shopPill) shopPill.textContent = pendingCountForShop(shop);
@@ -354,7 +388,7 @@
     shopName.value='';
     renderEdit();
     renderHome();
-    addShopBox.open = false; // collapse after saving
+    addShopBox.open = false;
   });
   clearForm.addEventListener('click', ()=>{ shopName.value=''; shopCat.value='Groceries'; });
 
@@ -364,7 +398,7 @@
       const shops = state.shops.filter(s=> s.category===cat);
       const section = document.createElement('div');
       section.innerHTML = `
-        <h3 style="margin:0 0 8px">${icon(cat)} ${cat}</h3>
+        <h3 style="margin:0 0 8px">${cat}</h3>
         <div id="grp-${cssId(cat)}"></div>
       `;
       groups.appendChild(section);
@@ -421,7 +455,7 @@
         document.querySelector('#items-'+shopId)
           .insertAdjacentHTML('beforeend', editItemTemplate(shopId, newItem));
         inp.value = '';
-        renderHome(); // update counts on Home
+        renderHome();
       });
     });
     // enter-to-add
