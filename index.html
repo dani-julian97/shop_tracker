@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ShopTracker – Simple</title>
+
+<style>
+  :root{
+    --bg:#0b1220; --card:#121b31; --text:#e8eef9; --muted:#9fb0c9;
+    --primary:#0a84ff; --danger:#ff3b30; --radius:16px; --shadow:0 16px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--text);
+    background:
+      radial-gradient(900px 520px at 50% -120px, rgba(58,160,255,.18), transparent 60%),
+      radial-gradient(700px 360px at 120% 10%, rgba(10,132,255,.12), transparent 60%),
+      #0b1220;
+    font-family:-apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  header{position:sticky; top:0; z-index:10; padding:16px; background:linear-gradient(180deg, rgba(11,18,32,.85), rgba(11,18,32,.55) 60%, transparent); backdrop-filter:blur(6px)}
+  .hero{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .hero h1{margin:0; font-size:1.25rem; font-weight:800}
+  .hero p{margin:.25rem 0 0; color:var(--muted); font-size:.9rem}
+  .nav{display:flex; gap:8px}
+  .btn{appearance:none; border:none; border-radius:12px; padding:.6rem .9rem; font-weight:700; background:var(--primary); color:#fff; box-shadow:var(--shadow); cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn-ghost{background:rgba(255,255,255,.08); color:#cfe4ff; box-shadow:none}
+
+  main{padding:12px 16px 24px; max-width:720px; margin:0 auto}
+
+  /* HOME cards (accordion) */
+  .list{display:flex; flex-direction:column; gap:10px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow)}
+  .card-header{display:flex; align-items:center; gap:12px; cursor:pointer}
+  .badge{width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:rgba(10,132,255,.15); border:1px solid rgba(10,132,255,.35); font-weight:900}
+  .meta{flex:1}
+  .meta h2{margin:0; font-size:1rem; font-weight:800}
+  .meta p{margin:.15rem 0 0; color:var(--muted); font-size:.86rem}
+  .chev{opacity:.85}
+  .panel{display:none; margin-top:10px; border-top:1px dashed rgba(255,255,255,.12); padding-top:10px}
+  .panel.open{display:block; animation:drop .2s ease-out}
+  @keyframes drop{from{opacity:.3; transform:translateY(-3px)} to{opacity:1; transform:none}}
+
+  /* Shops + items inside panels */
+  .shop{background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; margin:10px 0}
+  .shop h3{margin:0 0 6px; font-size:.98rem; display:flex; align-items:center; justify-content:space-between; gap:6px}
+  .shop hr{border:0; border-top:1px solid rgba(255,255,255,.08); margin:6px 0}
+  .items{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px}
+  .item{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:10px; padding:8px; border-radius:10px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06)}
+  .item.done label{text-decoration:line-through; color:#8fa5c7}
+  .remove{border:none; border-radius:10px; padding:.45rem .6rem; font-weight:800; background:var(--danger); color:#fff; cursor:pointer}
+
+  /* small pill counter */
+  .pill{display:inline-block; min-width:22px; padding:.15rem .45rem; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); font-size:.78rem; text-align:center}
+
+  /* Edit sections */
+  .section{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); margin-bottom:12px}
+  .section h2{margin:0 0 10px; font-size:1.05rem}
+  .row{display:grid; grid-template-columns:1fr; gap:10px}
+  .label{font-size:.9rem; color:#dbe8ff; font-weight:700}
+  .input, .select{appearance:none; width:100%; padding:.7rem .85rem; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--text)}
+  .inline{display:flex; gap:8px; flex-wrap:wrap}
+  .small{color:var(--muted); font-size:.85rem}
+  .danger{color:#ffb8b6; text-decoration:underline; cursor:pointer}
+
+  /* Collapsible (Edit → Add shop) */
+  details{border-radius:14px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); box-shadow:var(--shadow); padding:8px}
+  summary{list-style:none; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px; cursor:pointer; font-weight:800}
+  summary::-webkit-details-marker{display:none}
+
+  /* Collapsible shops in Edit */
+  .shop-head{display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer}
+  .shop-body{display:none; margin-top:8px}
+  .shop.open .shop-body{display:block}
+  .note{color:#9fb0c9; text-align:center; margin-top:6px; font-size:.9rem}
+</style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <div>
+        <h1 id="title">ShopTracker</h1>
+        <p id="subtitle">Super simple shopping labels</p>
+      </div>
+      <div class="nav">
+        <button id="goHome" class="btn-ghost btn">Home</button>
+        <button id="goEdit" class="btn">Edit</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <main id="home" aria-live="polite">
+    <div class="list" id="labelList"><!-- injected --></div>
+    <div class="note">Tap a label to open its shops and items.</div>
+  </main>
+
+  <!-- EDIT -->
+  <main id="edit" hidden>
+    <!-- Create new shop (collapsible, NO item adding here) -->
+    <section class="section" style="padding:0">
+      <details id="addShopBox">
+        <summary>
+          <span>Create new shop</span>
+          <span class="small">tap to open/close</span>
+        </summary>
+        <div style="padding:10px 14px 14px">
+          <div class="row">
+            <div>
+              <label class="label" for="shopName">Shop name</label>
+              <input id="shopName" class="input" placeholder="e.g., Lidl, Zara" />
+            </div>
+            <div>
+              <label class="label" for="shopCat">Main label</label>
+              <select id="shopCat" class="select">
+                <option>Groceries</option>
+                <option>Clothes</option>
+                <option>Presents</option>
+              </select>
+            </div>
+          </div>
+          <div class="inline" style="margin-top:10px">
+            <button id="saveShop" class="btn">Save shop</button>
+            <button id="clearForm" class="btn-ghost btn">Clear</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Existing shops grouped by label; each shop collapsed; open to add items -->
+    <section class="section">
+      <h2>Existing shops</h2>
+      <div id="groups"><!-- injected --></div>
+      <div class="note">Tap any shop title to open and add items.</div>
+    </section>
+  </main>
+
+<script>
+(function(){
+  "use strict";
+  // — Storage —
+  function createSafeStorage(){
+    const mem={};
+    try{ const k='__t__'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return localStorage; }
+    catch(e){ return { getItem:k=>mem[k]??null, setItem:(k,v)=>mem[k]=String(v), removeItem:k=>delete mem[k] }; }
+  }
+  const storage=createSafeStorage();
+  const KEY='shop_simple_v7'; // bump key so your old cached data doesn't conflict while testing
+
+  // Catalog for initial seeding (Home demo data)
+  const CATALOG = {
+    Groceries: ['Milk','Eggs','Bread','Tomatoes','Bananas','Apples','Chicken breast','Rice','Pasta','Yogurt','Cheese'],
+    Clothes:   ['Black T-shirt','Jeans','Socks','Hoodie','Jacket','Dress','Belt','Sneakers'],
+    Presents:  ['Birthday card','Gift wrap','Chocolate box','Flowers','Book','Toy','Board game','Photo frame']
+  };
+  function randFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randomItems(cat, n=3){
+    const pool = CATALOG[cat] || [];
+    const picked = new Set();
+    while(picked.size < Math.min(n, pool.length)) picked.add(randFrom(pool));
+    return [...picked].map(t => it(t));
+  }
+
+  const DEFAULT = {
+    categories:["Groceries","Clothes","Presents"],
+    shops:[
+      {id:uid(), name:"Local Market", category:"Groceries", items:randomItems("Groceries")},
+      {id:uid(), name:"Uniqlo",       category:"Clothes",   items:randomItems("Clothes")},
+      {id:uid(), name:"Bookstore",    category:"Presents",  items:randomItems("Presents")}
+    ]
+  };
+
+  function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+  function it(text){ return {id:uid(), text, done:false}; }
+  function load(){ try{ const raw=storage.getItem(KEY); return raw? JSON.parse(raw): DEFAULT; }catch{ return DEFAULT; } }
+  function save(){ storage.setItem(KEY, JSON.stringify(state)); }
+  let state=load();
+
+  // — Nav —
+  const home=document.getElementById('home');
+  const edit=document.getElementById('edit');
+  document.getElementById('goHome').addEventListener('click', ()=>{ home.hidden=false; edit.hidden=true; renderHome(); setHead('ShopTracker','Super simple shopping labels'); });
+  document.getElementById('goEdit').addEventListener('click', ()=>{ home.hidden=true; edit.hidden=false; renderEdit(); setHead('Edit','Add shops and items'); });
+  function setHead(t,s){ document.getElementById('title').textContent=t; document.getElementById('subtitle').textContent=s; }
+
+  // Helpers
+  function cssId(s){ return s.replace(/\s+/g,'-').toLowerCase(); }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+  function icon(cat){ return cat==='Groceries'?'🛒':cat==='Clothes'?'👕':cat==='Presents'?'🎁':'🗂️'; }
+
+  function pendingCountForCategory(cat){
+    let n=0;
+    state.shops.filter(s=>s.category===cat).forEach(s=>{
+      n += s.items.filter(i=>!i.done).length;
+    });
+    return n;
+  }
+  function pendingCountForShop(shop){ return shop.items.filter(i=>!i.done).length; }
+  function categoryOfShopId(shopId){
+    const s = state.shops.find(x=>x.id===shopId);
+    return s ? s.category : null;
+  }
+
+  // — HOME (accordion with items) —
+  const labelList=document.getElementById('labelList');
+
+  function renderHome(){
+    labelList.innerHTML='';
+    state.categories.forEach(cat=>{
+      const pending = pendingCountForCategory(cat);
+      const card=document.createElement('article');
+      card.className='card';
+
+      const cardId = cssId(cat);
+      card.innerHTML = `
+        <div class="card-header" data-cat="${cat}" role="button" aria-expanded="false" aria-controls="panel-${cardId}">
+          <div class="badge">${icon(cat)}</div>
+          <div class="meta">
+            <h2>${cat}</h2>
+            <p><span class="pill" id="pill-${cardId}">${pending}</span> to buy</p>
+          </div>
+          <div class="chev">▾</div>
+        </div>
+        <div class="panel" id="panel-${cardId}"></div>
+      `;
+      labelList.appendChild(card);
+    });
+
+    // Toggle panels and render contents on open
+    labelList.querySelectorAll('.card-header').forEach(h=>{
+      h.addEventListener('click', ()=>{
+        const cat = h.getAttribute('data-cat');
+        const panel = document.getElementById('panel-'+cssId(cat));
+        const open = !panel.classList.contains('open');
+        labelList.querySelectorAll('.panel.open').forEach(p=> p.classList.remove('open'));
+        labelList.querySelectorAll('.card-header[aria-expanded="true"]').forEach(x=> x.setAttribute('aria-expanded','false'));
+        if(open){
+          h.setAttribute('aria-expanded','true');
+          renderCategoryPanel(cat, panel);
+          panel.classList.add('open');
+        } else {
+          h.setAttribute('aria-expanded','false');
+          panel.classList.remove('open');
+          panel.innerHTML='';
+        }
+      }, {passive:true});
+    });
+  }
+
+  function renderCategoryPanel(category, container){
+    const shops = state.shops.filter(s=> s.category===category);
+    container.innerHTML = shops.length ? '' : '<p class="small" style="margin:6px 0 0">No shops in this label. Add some in Edit.</p>';
+
+    shops.forEach(shop=>{
+      const pending = pendingCountForShop(shop);
+      const block=document.createElement('div');
+      block.className='shop';
+      block.innerHTML=`
+        <h3 class="shop-head">
+          <span>${escapeHtml(shop.name)}</span>
+          <span>
+            <span class="pill" id="pill-shop-${shop.id}">${pending}</span>
+            <span class="small">tap to open</span>
+          </span>
+        </h3>
+        <div class="shop-body">
+          <hr>
+          <ul class="items" id="ul-${shop.id}"></ul>
+        </div>
+      `;
+      container.appendChild(block);
+
+      // Show up to 3 UNCHECKED items initially
+      const ul = block.querySelector('.items');
+      const toBuy = shop.items.filter(i=>!i.done).slice(0,3);
+      if(toBuy.length===0){
+        ul.insertAdjacentHTML('beforeend', `<li class="small" style="opacity:.8">Nothing to buy.</li>`);
+      }else{
+        toBuy.forEach(item=>{
+          ul.insertAdjacentHTML('beforeend', itemTemplate(shop.id, item));
+        });
+      }
+
+      // interactions
+      block.querySelector('.shop-head').addEventListener('click', ()=>{
+        block.classList.toggle('open');
+      });
+      ul.querySelectorAll('input[type="checkbox"]').forEach(cb=> cb.addEventListener('change', onToggleItem));
+      ul.querySelectorAll('button.remove').forEach(btn=> btn.addEventListener('click', onRemoveItem));
+    });
+  }
+
+  function itemTemplate(shopId, item){
+    return `<li class="item ${item.done?'done':''}" data-shop="${shopId}" data-item="${item.id}">
+      <input type="checkbox" ${item.done?'checked':''} aria-label="toggle ${escapeHtml(item.text)}">
+      <label>${escapeHtml(item.text)}</label>
+      <button class="remove" title="Remove">Remove</button>
+    </li>`;
+  }
+
+  // ✅ Toggle strike-through, DO NOT re-render the panel
+  function onToggleItem(e){
+    const li = e.target.closest('.item'); if(!li) return;
+    const shop = state.shops.find(s=> s.id===li.dataset.shop);
+    const item = shop?.items.find(i=> i.id===li.dataset.item);
+    if(!item) return;
+
+    item.done = e.target.checked;
+    li.classList.toggle('done', item.done); // visual tachado
+    save();
+
+    // update shop & category counters
+    const cat = categoryOfShopId(shop.id);
+    const shopPill = document.getElementById('pill-shop-'+shop.id);
+    if(shopPill) shopPill.textContent = pendingCountForShop(shop);
+    const catPill = document.getElementById('pill-'+cssId(cat));
+    if(catPill) catPill.textContent = pendingCountForCategory(cat);
+  }
+
+  function onRemoveItem(e){
+    const li = e.target.closest('.item'); if(!li) return;
+    const shop = state.shops.find(s=> s.id===li.dataset.shop);
+    if(!shop) return;
+
+    shop.items = shop.items.filter(i=> i.id !== li.dataset.item);
+    li.remove();
+    save();
+
+    // update counters after removal
+    const cat = categoryOfShopId(shop.id);
+    const shopPill = document.getElementById('pill-shop-'+shop.id);
+    if(shopPill) shopPill.textContent = pendingCountForShop(shop);
+    const catPill = document.getElementById('pill-'+cssId(cat));
+    if(catPill) catPill.textContent = pendingCountForCategory(cat);
+  }
+
+  // — EDIT —
+  const addShopBox = document.getElementById('addShopBox');
+  const shopName=document.getElementById('shopName');
+  const shopCat=document.getElementById('shopCat');
+  const saveShop=document.getElementById('saveShop');
+  const clearForm=document.getElementById('clearForm');
+  const groups = document.getElementById('groups');
+
+  saveShop.addEventListener('click', ()=>{
+    const name=shopName.value.trim(); if(!name){ alert('Enter a shop name'); return; }
+    const chosen = shopCat.value;
+    const shop={ id:uid(), name, category:chosen, items:[] }; // start EMPTY
+    state.shops.push(shop);
+    save();
+    shopName.value='';
+    renderEdit();
+    renderHome();
+    addShopBox.open = false; // collapse after saving
+  });
+  clearForm.addEventListener('click', ()=>{ shopName.value=''; shopCat.value='Groceries'; });
+
+  function renderEdit(){
+    groups.innerHTML = '';
+    state.categories.forEach(cat=>{
+      const shops = state.shops.filter(s=> s.category===cat);
+      const section = document.createElement('div');
+      section.innerHTML = `
+        <h3 style="margin:0 0 8px">${icon(cat)} ${cat}</h3>
+        <div id="grp-${cssId(cat)}"></div>
+      `;
+      groups.appendChild(section);
+
+      const holder = section.querySelector('#grp-'+cssId(cat));
+      if(!shops.length){
+        holder.innerHTML = `<p class="small">No shops in ${cat}.</p>`;
+        return;
+      }
+
+      shops.forEach(s=>{
+        const box = document.createElement('div');
+        box.className = 'shop';
+        box.innerHTML = `
+          <div class="shop-head">
+            <strong>${escapeHtml(s.name)}</strong>
+            <div>
+              <button class="danger" style="background:transparent; border:none; color:#ffb8b6; text-decoration:underline; cursor:pointer" data-remove="${s.id}">Remove</button>
+              <span class="small" style="margin-left:6px">tap to open</span>
+            </div>
+          </div>
+          <div class="shop-body">
+            <div class="inline" style="margin:8px 0">
+              <input class="input" id="in-${s.id}" placeholder="Add item to ${escapeHtml(s.name)}" />
+              <button class="btn" data-add="${s.id}">Add</button>
+            </div>
+            <ul class="items" id="items-${s.id}"></ul>
+          </div>
+        `;
+        holder.appendChild(box);
+
+        // full list in Edit (show all items)
+        const ul = box.querySelector('#items-'+s.id);
+        s.items.forEach(itm=> ul.insertAdjacentHTML('beforeend', editItemTemplate(s.id, itm)));
+
+        // collapse/expand
+        box.querySelector('.shop-head').addEventListener('click', (ev)=>{
+          if(ev.target && ev.target.getAttribute && ev.target.getAttribute('data-remove')) return;
+          box.classList.toggle('open');
+        });
+      });
+    });
+
+    // wire add buttons
+    groups.querySelectorAll('[data-add]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const shopId = btn.getAttribute('data-add');
+        const inp = document.getElementById('in-'+shopId);
+        const v = (inp.value||'').trim(); if(!v) return;
+        const shop = state.shops.find(x=> x.id===shopId); if(!shop) return;
+        const newItem = {id:uid(), text:v, done:false};
+        shop.items.push(newItem);
+        save();
+        document.querySelector('#items-'+shopId)
+          .insertAdjacentHTML('beforeend', editItemTemplate(shopId, newItem));
+        inp.value = '';
+        renderHome(); // update counts on Home
+      });
+    });
+    // enter-to-add
+    groups.querySelectorAll('input[id^="in-"]').forEach(inp=>{
+      inp.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){
+          const shopId = inp.id.replace('in-','');
+          const btn = groups.querySelector(`[data-add="${shopId}"]`);
+          if(btn) btn.click();
+        }
+      });
+    });
+    // remove shop
+    groups.querySelectorAll('[data-remove]').forEach(a=>{
+      a.addEventListener('click', ()=>{
+        const id=a.getAttribute('data-remove');
+        const idx=state.shops.findIndex(s=> s.id===id);
+        if(idx>-1 && confirm('Remove this shop?')){
+          state.shops.splice(idx,1); save(); renderEdit(); renderHome();
+        }
+      });
+    });
+    // remove item (in edit list)
+    groups.querySelectorAll('button[data-rm-item]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const shopId = b.getAttribute('data-shop');
+        const itemId = b.getAttribute('data-rm-item');
+        const shop = state.shops.find(s=> s.id===shopId); if(!shop) return;
+        shop.items = shop.items.filter(i=> i.id!==itemId);
+        save();
+        const li = document.getElementById(`eitem-${itemId}`); if(li) li.remove();
+        renderHome();
+      });
+    });
+  }
+
+  function editItemTemplate(shopId, item){
+    return `<li class="item ${item.done?'done':''}" id="eitem-${item.id}">
+      <input type="checkbox" ${item.done?'checked':''} disabled>
+      <label>${escapeHtml(item.text)}</label>
+      <button class="remove" data-shop="${shopId}" data-rm-item="${item.id}">Remove</button>
+    </li>`;
+  }
+
+  // Init
+  renderHome();
+  document.getElementById('goEdit').addEventListener('click', ()=> { addShopBox.open = false; renderEdit(); });
+
+})();
+</script>
+</body>
+</html>
