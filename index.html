@@ -79,7 +79,7 @@
   .panel.open{display:block; animation:drop .2s ease-out}
   @keyframes drop{from{opacity:.3; transform:translateY(-2px)} to{opacity:1; transform:none}}
 
-  /* Shops + items */
+  /* Shops + items (Home + Edit) */
   .shop{background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:12px; padding:10px; margin:10px 0}
   .shop h3{margin:0 0 6px; font-size:.98rem; display:flex; align-items:center; justify-content:space-between}
   .shop hr{border:0; border-top:1px solid var(--line); margin:8px 0}
@@ -89,6 +89,13 @@
   .remove{border:none; border-radius:10px; padding:.45rem .6rem; font-weight:700; background:transparent; color:#ffb2b2; cursor:pointer;}
   .remove:hover{background:rgba(255,93,93,.1);}
   .pill{display:inline-block; min-width:22px; padding:.15rem .45rem; border-radius:999px; background:rgba(255,255,255,.1); border:1px solid var(--line); font-size:.78rem; text-align:center}
+
+  /* Collapsible shop headers */
+  .shop-head{display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; user-select:none}
+  .shop-head .title{display:flex; align-items:center; gap:10px}
+  .shop-head .chev{opacity:.85; transform:rotate(-90deg); transition:transform .2s ease}
+  .shop-head[aria-expanded="true"] .chev{ transform:rotate(0deg); }
+  .shop-body{margin-top:8px}
 
   /* Edit sections */
   .section{background:linear-gradient(180deg, var(--card), var(--card-2)); border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); margin-bottom:14px}
@@ -123,7 +130,7 @@
   <!-- HOME -->
   <main id="home">
     <div class="list" id="labelList"></div>
-    <div class="note">Tap a label to open its shops and items.</div>
+    <div class="note">Tap a label, then tap a shop to expand/collapse its items.</div>
   </main>
 
   <!-- EDIT -->
@@ -275,12 +282,17 @@ function renderCategoryPanel(category, container){
     const block=document.createElement('div');
     block.className='shop';
     block.innerHTML=`
-      <h3>
-        <span>${escapeHtml(shop.name)}</span>
+      <div class="shop-head" role="button" aria-expanded="false" aria-controls="body-${shop.id}">
+        <div class="title">
+          <span class="chev">▸</span>
+          <strong>${escapeHtml(shop.name)}</strong>
+        </div>
         <span class="pill" id="pill-shop-${shop.id}">${pending}</span>
-      </h3>
-      <hr>
-      <ul class="items" id="ul-${shop.id}"></ul>`;
+      </div>
+      <div class="shop-body" id="body-${shop.id}" hidden>
+        <hr>
+        <ul class="items" id="ul-${shop.id}"></ul>
+      </div>`;
     container.appendChild(block);
 
     const ul=block.querySelector('.items');
@@ -300,6 +312,15 @@ function renderCategoryPanel(category, container){
           </li>`);
       });
     }
+
+    // default collapsed; toggle on header click
+    const head = block.querySelector('.shop-head');
+    const body = block.querySelector('.shop-body');
+    head.addEventListener('click', () => {
+      const expanded = head.getAttribute('aria-expanded') === 'true';
+      head.setAttribute('aria-expanded', String(!expanded));
+      body.hidden = expanded;
+    });
 
     ul.querySelectorAll('input[type="checkbox"]').forEach(cb=> cb.addEventListener('change', onToggleItem));
     ul.querySelectorAll('button.remove').forEach(btn=> btn.addEventListener('click', onRemoveItem));
@@ -372,14 +393,17 @@ function renderEdit(){
       const box=document.createElement('div');
       box.className='shop';
       box.innerHTML=`
-        <div class="shop-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer">
-          <strong>${escapeHtml(s.name)}</strong>
+        <div class="shop-head" style="cursor:pointer" role="button" aria-expanded="false" aria-controls="e-body-${s.id}">
+          <div class="title">
+            <span class="chev">▸</span>
+            <strong>${escapeHtml(s.name)}</strong>
+          </div>
           <div>
             <button class="remove" data-remove="${s.id}" style="margin-right:8px">Remove</button>
-            <span class="small">tap to open</span>
+            <span class="small">tap</span>
           </div>
         </div>
-        <div class="shop-body" style="display:none; margin-top:8px">
+        <div class="shop-body" id="e-body-${s.id}" hidden>
           <div class="inline" style="margin:8px 0">
             <input class="input" id="in-${s.id}" placeholder="Add item to ${escapeHtml(s.name)}" />
             <button class="btn" data-add="${s.id}">Add</button>
@@ -394,10 +418,12 @@ function renderEdit(){
       });
 
       const head=box.querySelector('.shop-head');
+      const body=box.querySelector('.shop-body');
       head.addEventListener('click',(ev)=>{
         if(ev.target && ev.target.getAttribute && ev.target.getAttribute('data-remove')) return;
-        const body=box.querySelector('.shop-body');
-        body.style.display = body.style.display==='none' ? 'block' : 'none';
+        const expanded = head.getAttribute('aria-expanded') === 'true';
+        head.setAttribute('aria-expanded', String(!expanded));
+        body.hidden = expanded;
       });
     });
   });
